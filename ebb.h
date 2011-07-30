@@ -25,6 +25,10 @@
 #ifndef EBB_H
 #define EBB_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <ev.h>
@@ -117,4 +121,8 @@ void ebb_connection_schedule_close (ebb_connection *);
 void ebb_connection_reset_timeout (ebb_connection *);
 int ebb_connection_write (ebb_connection *, const char *buf, size_t len, ebb_after_write_cb);
 
+#ifdef __cplusplus
+}
+#endif
+    
 #endif

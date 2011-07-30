@@ -25,6 +25,10 @@
 #ifndef _RBTREE_H_
 #define _RBTREE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum rbtree_node_color { RED, BLACK };
 
 typedef int (*rbtree_compare_func)(void* left_key, void* right_key);
@@ -49,6 +53,10 @@ void* rbtree_lookup(rbtree t, void* key);
 void rbtree_insert(rbtree t, rbtree_node);
 /* you must free the returned node */
 rbtree_node rbtree_delete(rbtree t, void* key);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
