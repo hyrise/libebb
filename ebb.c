@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/event.h> /* EV_ERROR */
 #include <netinet/tcp.h> /* TCP_NODELAY */
 #include <netinet/in.h>  /* inet_ntoa */
 #include <arpa/inet.h>   /* inet_ntoa */
