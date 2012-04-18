@@ -243,7 +243,9 @@ on_connection(struct ev_loop *loop, ev_io *watcher, int revents)
                  , & addr_len
                  );
   if(fd < 0) {
-    perror("accept()");
+    if(errno != EAGAIN && errno != EWOULDBLOCK) {
+        perror("accept()");
+    }
     return;
   }
 

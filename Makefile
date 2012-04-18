@@ -54,7 +54,7 @@ examples: examples/hello_world
 
 examples/hello_world: examples/hello_world.c $(OUTPUT_A) 
 	@echo BUILDING examples/hello_world
-	@$(CC) -I. $(LIBS) $(CFLAGS) -lev -o $@ $^
+	@$(CC) -I. $(LIBS) $(CFLAGS) -o $@ $^ -lev
 
 clean:
 	@echo CLEANING
