@@ -59,6 +59,8 @@ struct ebb_server {
   void *data;
 };
 
+#define EBB_READ_BUFFER 8192
+
 struct ebb_connection {
   int fd;                      /* ro */
   struct sockaddr_in sockaddr; /* ro */
@@ -77,6 +79,9 @@ struct ebb_connection {
   ev_io read_watcher;          /* private */
   ev_timer timeout_watcher;    /* private */
   ev_timer goodbye_watcher;    /* private */
+
+  int buffered_data;                    /* private */
+  char read_buffer[EBB_READ_BUFFER];    /* private */
 
   /* Public */
 
