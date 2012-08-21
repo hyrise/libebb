@@ -49,17 +49,21 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 #define CURRENT (parser->current_request)
 #define CONTENT_LENGTH (parser->current_request->content_length)
 #define CALLBACK(FOR)                               \
-  if(CURRENT && parser->FOR##_mark && CURRENT->on_##FOR) {     \
+  if(CURRENT && \
+      parser->FOR##_start >= 0 && parser->FOR##_end >= 0 && \
+      CURRENT->on_##FOR) {     \
     CURRENT->on_##FOR( CURRENT                      \
-                , parser->FOR##_mark                \
-                , p - parser->FOR##_mark            \
+                , buf + parser->FOR##_start                \
+                , parser->FOR##_end - parser->FOR##_start            \
                 );                                  \
  }
 #define HEADER_CALLBACK(FOR)                        \
-  if(CURRENT && parser->FOR##_mark && CURRENT->on_##FOR) {     \
+  if(CURRENT && \
+      parser->FOR##_start >= 0 && parser->FOR##_end >= 0 && \
+      CURRENT->on_##FOR) {     \
     CURRENT->on_##FOR( CURRENT                      \
-                , parser->FOR##_mark                \
-                , p - parser->FOR##_mark            \
+                , buf + parser->FOR##_start                \
+                , parser->FOR##_end - parser->FOR##_start            \
                 , CURRENT->number_of_headers        \
                 );                                  \
  }
@@ -70,11 +74,11 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 
 
 
-#line 297 "ebb_request_parser.rl"
+#line 310 "ebb_request_parser.rl"
 
 
 
-#line 78 "ebb_request_parser.c"
+#line 82 "ebb_request_parser.c"
 static const int ebb_request_parser_start = 183;
 static const int ebb_request_parser_first_final = 183;
 static const int ebb_request_parser_error = 0;
@@ -84,7 +88,7 @@ static const int ebb_request_parser_en_ChunkedBody_chunk_chunk_end = 175;
 static const int ebb_request_parser_en_main = 183;
 
 
-#line 300 "ebb_request_parser.rl"
+#line 313 "ebb_request_parser.rl"
 
 static void
 skip_body(const char **p, ebb_request_parser *parser, size_t nskip) {
@@ -108,12 +112,12 @@ void ebb_request_parser_init(ebb_request_parser *parser)
 {
   int cs = 0;
   
-#line 112 "ebb_request_parser.c"
+#line 116 "ebb_request_parser.c"
 	{
 	cs = ebb_request_parser_start;
 	}
 
-#line 323 "ebb_request_parser.rl"
+#line 336 "ebb_request_parser.rl"
   parser->cs = cs;
 
   parser->chunk_size = 0;
@@ -121,24 +125,29 @@ void ebb_request_parser_init(ebb_request_parser *parser)
   
   parser->current_request = NULL;
 
-  parser->header_field_mark = parser->header_value_mark   = 
-  parser->query_string_mark = parser->path_mark           = 
-  parser->uri_mark          = parser->fragment_mark       = NULL;
+  parser->header_field_start = parser->header_field_end = -1;
+  parser->header_value_start = parser->header_value_end = -1;
+  parser->query_string_start = parser->query_string_end = -1;
+  parser->path_start = parser->path_end = -1;
+  parser->uri_start = parser->uri_end = -1;
+  parser->fragment_start = parser->fragment_end = -1;
 
   parser->new_request = NULL;
 }
 
 
 /** exec **/
-size_t ebb_request_parser_execute(ebb_request_parser *parser, const char *buffer, size_t len)
+size_t ebb_request_parser_execute(ebb_request_parser *parser, const char *buffer, size_t len, size_t off)
 {
   const char *p, *pe;
   int cs = parser->cs;
 
   assert(parser->new_request && "undefined callback");
 
-  p = buffer;
-  pe = buffer+len;
+  p = buffer+off;
+  pe = buffer+off+len;
+
+  const char* buf = buffer;
 
   if(0 < parser->chunk_size && parser->eating) {
     /* eat body */
@@ -146,15 +155,8 @@ size_t ebb_request_parser_execute(ebb_request_parser *parser, const char *buffer
     skip_body(&p, parser, eat);
   } 
 
-  if(parser->header_field_mark)   parser->header_field_mark   = buffer;
-  if(parser->header_value_mark)   parser->header_value_mark   = buffer;
-  if(parser->fragment_mark)       parser->fragment_mark       = buffer;
-  if(parser->query_string_mark)   parser->query_string_mark   = buffer;
-  if(parser->path_mark)           parser->path_mark           = buffer;
-  if(parser->uri_mark)            parser->uri_mark            = buffer;
-
   
-#line 158 "ebb_request_parser.c"
+#line 160 "ebb_request_parser.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
@@ -357,12 +359,12 @@ _resume:
 	{
 tr25:
 	cs = 183;
-#line 149 "ebb_request_parser.rl"
+#line 164 "ebb_request_parser.rl"
 	{
     if(CURRENT && CURRENT->on_headers_complete)
       CURRENT->on_headers_complete(CURRENT);
   }
-#line 179 "ebb_request_parser.rl"
+#line 194 "ebb_request_parser.rl"
 	{
     if(CURRENT) { 
       if(CURRENT->transfer_encoding == EBB_CHUNKED) {
@@ -384,7 +386,7 @@ st183:
 	if ( ++p == pe )
 		goto _test_eof183;
 case 183:
-#line 388 "ebb_request_parser.c"
+#line 390 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 67: goto tr218;
 		case 68: goto tr219;
@@ -402,7 +404,7 @@ st0:
 cs = 0;
 	goto _out;
 tr218:
-#line 174 "ebb_request_parser.rl"
+#line 189 "ebb_request_parser.rl"
 	{
     assert(CURRENT == NULL);
     CURRENT = parser->new_request(parser->data);
@@ -412,7 +414,7 @@ st1:
 	if ( ++p == pe )
 		goto _test_eof1;
 case 1:
-#line 416 "ebb_request_parser.c"
+#line 418 "ebb_request_parser.c"
 	if ( (*p) == 79 )
 		goto st2;
 	goto st0;
@@ -438,66 +440,66 @@ case 4:
 		goto tr4;
 	goto st0;
 tr4:
-#line 228 "ebb_request_parser.rl"
+#line 243 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_COPY;      }
 	goto st5;
 tr139:
-#line 229 "ebb_request_parser.rl"
+#line 244 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_DELETE;    }
 	goto st5;
 tr142:
-#line 230 "ebb_request_parser.rl"
+#line 245 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_GET;       }
 	goto st5;
 tr146:
-#line 231 "ebb_request_parser.rl"
+#line 246 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_HEAD;      }
 	goto st5;
 tr150:
-#line 232 "ebb_request_parser.rl"
+#line 247 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_LOCK;      }
 	goto st5;
 tr156:
-#line 233 "ebb_request_parser.rl"
+#line 248 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_MKCOL;     }
 	goto st5;
 tr159:
-#line 234 "ebb_request_parser.rl"
+#line 249 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_MOVE;      }
 	goto st5;
 tr166:
-#line 235 "ebb_request_parser.rl"
+#line 250 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_OPTIONS;   }
 	goto st5;
 tr172:
-#line 236 "ebb_request_parser.rl"
+#line 251 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_POST;      }
 	goto st5;
 tr180:
-#line 237 "ebb_request_parser.rl"
+#line 252 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_PROPFIND;  }
 	goto st5;
 tr185:
-#line 238 "ebb_request_parser.rl"
+#line 253 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_PROPPATCH; }
 	goto st5;
 tr187:
-#line 239 "ebb_request_parser.rl"
+#line 254 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_PUT;       }
 	goto st5;
 tr192:
-#line 240 "ebb_request_parser.rl"
+#line 255 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_TRACE;     }
 	goto st5;
 tr198:
-#line 241 "ebb_request_parser.rl"
+#line 256 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->method = EBB_UNLOCK;    }
 	goto st5;
 st5:
 	if ( ++p == pe )
 		goto _test_eof5;
 case 5:
-#line 501 "ebb_request_parser.c"
+#line 503 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 42: goto tr5;
 		case 43: goto tr6;
@@ -514,92 +516,98 @@ case 5:
 		goto tr6;
 	goto st0;
 tr5:
-#line 78 "ebb_request_parser.rl"
-	{ parser->uri_mark            = p; }
+#line 92 "ebb_request_parser.rl"
+	{ parser->uri_start           = p - buf; }
 	goto st6;
 st6:
 	if ( ++p == pe )
 		goto _test_eof6;
 case 6:
-#line 525 "ebb_request_parser.c"
+#line 527 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 32: goto tr9;
 		case 35: goto tr10;
 	}
 	goto st0;
 tr9:
-#line 90 "ebb_request_parser.rl"
-	{ 
-    CALLBACK(uri);
-    parser->uri_mark = NULL;
-  }
+#line 93 "ebb_request_parser.rl"
+	{ parser->uri_end             = p - buf; }
 	goto st7;
 tr109:
-#line 75 "ebb_request_parser.rl"
-	{ parser->fragment_mark       = p; }
-#line 95 "ebb_request_parser.rl"
+#line 83 "ebb_request_parser.rl"
+	{ parser->fragment_start      = p - buf; }
+#line 84 "ebb_request_parser.rl"
+	{ parser->fragment_end        = p - buf; }
+#line 110 "ebb_request_parser.rl"
 	{ 
     CALLBACK(fragment);
-    parser->fragment_mark = NULL;
+    parser->fragment_start = -1;
   }
 	goto st7;
 tr112:
-#line 95 "ebb_request_parser.rl"
+#line 84 "ebb_request_parser.rl"
+	{ parser->fragment_end        = p - buf; }
+#line 110 "ebb_request_parser.rl"
 	{ 
     CALLBACK(fragment);
-    parser->fragment_mark = NULL;
+    parser->fragment_start = -1;
   }
 	goto st7;
 tr120:
-#line 105 "ebb_request_parser.rl"
-	{
-    CALLBACK(path);
-    parser->path_mark = NULL;
-  }
 #line 90 "ebb_request_parser.rl"
-	{ 
-    CALLBACK(uri);
-    parser->uri_mark = NULL;
-  }
+	{ parser->path_end            = p - buf; }
+#line 93 "ebb_request_parser.rl"
+	{ parser->uri_end             = p - buf; }
 	goto st7;
 tr126:
-#line 76 "ebb_request_parser.rl"
-	{ parser->query_string_mark   = p; }
-#line 100 "ebb_request_parser.rl"
+#line 86 "ebb_request_parser.rl"
+	{ parser->query_string_start  = p - buf; }
+#line 87 "ebb_request_parser.rl"
+	{ parser->query_string_end    = p - buf; }
+#line 115 "ebb_request_parser.rl"
 	{ 
     CALLBACK(query_string);
-    parser->query_string_mark = NULL;
+    parser->query_string_start = -1;
   }
-#line 90 "ebb_request_parser.rl"
-	{ 
-    CALLBACK(uri);
-    parser->uri_mark = NULL;
-  }
+#line 93 "ebb_request_parser.rl"
+	{ parser->uri_end             = p - buf; }
 	goto st7;
 tr130:
-#line 100 "ebb_request_parser.rl"
+#line 87 "ebb_request_parser.rl"
+	{ parser->query_string_end    = p - buf; }
+#line 115 "ebb_request_parser.rl"
 	{ 
     CALLBACK(query_string);
-    parser->query_string_mark = NULL;
+    parser->query_string_start = -1;
   }
-#line 90 "ebb_request_parser.rl"
-	{ 
-    CALLBACK(uri);
-    parser->uri_mark = NULL;
-  }
+#line 93 "ebb_request_parser.rl"
+	{ parser->uri_end             = p - buf; }
 	goto st7;
 st7:
 	if ( ++p == pe )
 		goto _test_eof7;
 case 7:
-#line 596 "ebb_request_parser.c"
+#line 591 "ebb_request_parser.c"
 	if ( (*p) == 72 )
-		goto st8;
+		goto tr11;
 	goto st0;
+tr11:
+#line 120 "ebb_request_parser.rl"
+	{
+    CALLBACK(path);
+    parser->path_start = parser->path_end = -1;
+  }
+#line 105 "ebb_request_parser.rl"
+	{ 
+    CALLBACK(uri);
+    parser->uri_start = -1;
+  }
+	goto st8;
 st8:
 	if ( ++p == pe )
 		goto _test_eof8;
 case 8:
+#line 611 "ebb_request_parser.c"
 	if ( (*p) == 84 )
 		goto st9;
 	goto st0;
@@ -632,7 +640,7 @@ case 12:
 		goto tr16;
 	goto st0;
 tr16:
-#line 131 "ebb_request_parser.rl"
+#line 146 "ebb_request_parser.rl"
 	{
     if(CURRENT) {
       CURRENT->version_major *= 10;
@@ -644,7 +652,7 @@ st13:
 	if ( ++p == pe )
 		goto _test_eof13;
 case 13:
-#line 648 "ebb_request_parser.c"
+#line 656 "ebb_request_parser.c"
 	if ( (*p) == 46 )
 		goto st14;
 	if ( 48 <= (*p) && (*p) <= 57 )
@@ -658,7 +666,7 @@ case 14:
 		goto tr18;
 	goto st0;
 tr18:
-#line 138 "ebb_request_parser.rl"
+#line 153 "ebb_request_parser.rl"
 	{
   	if(CURRENT) {
       CURRENT->version_minor *= 10;
@@ -670,7 +678,7 @@ st15:
 	if ( ++p == pe )
 		goto _test_eof15;
 case 15:
-#line 674 "ebb_request_parser.c"
+#line 682 "ebb_request_parser.c"
 	if ( (*p) == 13 )
 		goto st16;
 	if ( 48 <= (*p) && (*p) <= 57 )
@@ -716,7 +724,17 @@ case 17:
 		goto tr22;
 	goto st0;
 tr34:
-#line 145 "ebb_request_parser.rl"
+#line 95 "ebb_request_parser.rl"
+	{ 
+    HEADER_CALLBACK(header_field);
+    parser->header_field_start = -1;
+  }
+#line 100 "ebb_request_parser.rl"
+	{
+    HEADER_CALLBACK(header_value);
+    parser->header_value_start = -1;
+  }
+#line 160 "ebb_request_parser.rl"
 	{
     if(CURRENT) CURRENT->number_of_headers++;
   }
@@ -725,27 +743,37 @@ st18:
 	if ( ++p == pe )
 		goto _test_eof18;
 case 18:
-#line 729 "ebb_request_parser.c"
+#line 747 "ebb_request_parser.c"
 	if ( (*p) == 10 )
 		goto tr25;
 	goto st0;
 tr22:
-#line 73 "ebb_request_parser.rl"
-	{ parser->header_field_mark   = p; }
+#line 77 "ebb_request_parser.rl"
+	{ parser->header_field_start  = p - buf; }
 	goto st19;
 tr35:
-#line 145 "ebb_request_parser.rl"
+#line 95 "ebb_request_parser.rl"
+	{ 
+    HEADER_CALLBACK(header_field);
+    parser->header_field_start = -1;
+  }
+#line 100 "ebb_request_parser.rl"
+	{
+    HEADER_CALLBACK(header_value);
+    parser->header_value_start = -1;
+  }
+#line 160 "ebb_request_parser.rl"
 	{
     if(CURRENT) CURRENT->number_of_headers++;
   }
-#line 73 "ebb_request_parser.rl"
-	{ parser->header_field_mark   = p; }
+#line 77 "ebb_request_parser.rl"
+	{ parser->header_field_start  = p - buf; }
 	goto st19;
 st19:
 	if ( ++p == pe )
 		goto _test_eof19;
 case 19:
-#line 749 "ebb_request_parser.c"
+#line 777 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 33: goto st19;
 		case 58: goto tr27;
@@ -771,82 +799,64 @@ case 19:
 		goto st19;
 	goto st0;
 tr27:
-#line 80 "ebb_request_parser.rl"
-	{ 
-    HEADER_CALLBACK(header_field);
-    parser->header_field_mark = NULL;
-  }
+#line 78 "ebb_request_parser.rl"
+	{ parser->header_field_end    = p - buf; }
 	goto st20;
 st20:
 	if ( ++p == pe )
 		goto _test_eof20;
 case 20:
-#line 785 "ebb_request_parser.c"
+#line 810 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 13: goto tr29;
 		case 32: goto st20;
 	}
 	goto tr28;
 tr28:
-#line 74 "ebb_request_parser.rl"
-	{ parser->header_value_mark   = p; }
+#line 80 "ebb_request_parser.rl"
+	{ parser->header_value_start  = p - buf; }
 	goto st21;
 st21:
 	if ( ++p == pe )
 		goto _test_eof21;
 case 21:
-#line 799 "ebb_request_parser.c"
+#line 824 "ebb_request_parser.c"
 	if ( (*p) == 13 )
 		goto tr32;
 	goto st21;
 tr29:
-#line 74 "ebb_request_parser.rl"
-	{ parser->header_value_mark   = p; }
-#line 85 "ebb_request_parser.rl"
-	{
-    HEADER_CALLBACK(header_value);
-    parser->header_value_mark = NULL;
-  }
+#line 80 "ebb_request_parser.rl"
+	{ parser->header_value_start  = p - buf; }
+#line 81 "ebb_request_parser.rl"
+	{ parser->header_value_end    = p - buf; }
 	goto st22;
 tr32:
-#line 85 "ebb_request_parser.rl"
-	{
-    HEADER_CALLBACK(header_value);
-    parser->header_value_mark = NULL;
-  }
+#line 81 "ebb_request_parser.rl"
+	{ parser->header_value_end    = p - buf; }
 	goto st22;
 tr56:
-#line 121 "ebb_request_parser.rl"
+#line 136 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->keep_alive = FALSE; }
-#line 85 "ebb_request_parser.rl"
-	{
-    HEADER_CALLBACK(header_value);
-    parser->header_value_mark = NULL;
-  }
+#line 81 "ebb_request_parser.rl"
+	{ parser->header_value_end    = p - buf; }
 	goto st22;
 tr66:
-#line 120 "ebb_request_parser.rl"
+#line 135 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->keep_alive = TRUE; }
-#line 85 "ebb_request_parser.rl"
-	{
-    HEADER_CALLBACK(header_value);
-    parser->header_value_mark = NULL;
-  }
+#line 81 "ebb_request_parser.rl"
+	{ parser->header_value_end    = p - buf; }
 	goto st22;
 tr107:
-#line 117 "ebb_request_parser.rl"
+#line 132 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->transfer_encoding = EBB_IDENTITY; }
-#line 85 "ebb_request_parser.rl"
-	{
-    HEADER_CALLBACK(header_value);
-    parser->header_value_mark = NULL;
-  }
+#line 81 "ebb_request_parser.rl"
+	{ parser->header_value_end    = p - buf; }
 	goto st22;
 st22:
 	if ( ++p == pe )
 		goto _test_eof22;
 case 22:
-#line 850 "ebb_request_parser.c"
+#line 860 "ebb_request_parser.c"
 	if ( (*p) == 10 )
 		goto st23;
 	goto st0;
@@ -883,22 +893,32 @@ case 23:
 		goto tr35;
 	goto st0;
 tr23:
-#line 73 "ebb_request_parser.rl"
-	{ parser->header_field_mark   = p; }
+#line 77 "ebb_request_parser.rl"
+	{ parser->header_field_start  = p - buf; }
 	goto st24;
 tr36:
-#line 145 "ebb_request_parser.rl"
+#line 95 "ebb_request_parser.rl"
+	{ 
+    HEADER_CALLBACK(header_field);
+    parser->header_field_start = -1;
+  }
+#line 100 "ebb_request_parser.rl"
+	{
+    HEADER_CALLBACK(header_value);
+    parser->header_value_start = -1;
+  }
+#line 160 "ebb_request_parser.rl"
 	{
     if(CURRENT) CURRENT->number_of_headers++;
   }
-#line 73 "ebb_request_parser.rl"
-	{ parser->header_field_mark   = p; }
+#line 77 "ebb_request_parser.rl"
+	{ parser->header_field_start  = p - buf; }
 	goto st24;
 st24:
 	if ( ++p == pe )
 		goto _test_eof24;
 case 24:
-#line 902 "ebb_request_parser.c"
+#line 922 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 33: goto st19;
 		case 58: goto tr27;
@@ -1196,17 +1216,14 @@ case 33:
 		goto st19;
 	goto st0;
 tr48:
-#line 80 "ebb_request_parser.rl"
-	{ 
-    HEADER_CALLBACK(header_field);
-    parser->header_field_mark = NULL;
-  }
+#line 78 "ebb_request_parser.rl"
+	{ parser->header_field_end    = p - buf; }
 	goto st34;
 st34:
 	if ( ++p == pe )
 		goto _test_eof34;
 case 34:
-#line 1210 "ebb_request_parser.c"
+#line 1227 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 13: goto tr29;
 		case 32: goto st34;
@@ -1217,14 +1234,14 @@ case 34:
 	}
 	goto tr28;
 tr50:
-#line 74 "ebb_request_parser.rl"
-	{ parser->header_value_mark   = p; }
+#line 80 "ebb_request_parser.rl"
+	{ parser->header_value_start  = p - buf; }
 	goto st35;
 st35:
 	if ( ++p == pe )
 		goto _test_eof35;
 case 35:
-#line 1228 "ebb_request_parser.c"
+#line 1245 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 13: goto tr32;
 		case 76: goto st36;
@@ -1269,14 +1286,14 @@ case 39:
 		goto tr56;
 	goto st21;
 tr51:
-#line 74 "ebb_request_parser.rl"
-	{ parser->header_value_mark   = p; }
+#line 80 "ebb_request_parser.rl"
+	{ parser->header_value_start  = p - buf; }
 	goto st40;
 st40:
 	if ( ++p == pe )
 		goto _test_eof40;
 case 40:
-#line 1280 "ebb_request_parser.c"
+#line 1297 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 13: goto tr32;
 		case 69: goto st41;
@@ -1695,17 +1712,14 @@ case 60:
 		goto st19;
 	goto st0;
 tr77:
-#line 80 "ebb_request_parser.rl"
-	{ 
-    HEADER_CALLBACK(header_field);
-    parser->header_field_mark = NULL;
-  }
+#line 78 "ebb_request_parser.rl"
+	{ parser->header_field_end    = p - buf; }
 	goto st61;
 st61:
 	if ( ++p == pe )
 		goto _test_eof61;
 case 61:
-#line 1709 "ebb_request_parser.c"
+#line 1723 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 13: goto tr29;
 		case 32: goto st61;
@@ -1714,18 +1728,18 @@ case 61:
 		goto tr79;
 	goto tr28;
 tr79:
-#line 110 "ebb_request_parser.rl"
+#line 125 "ebb_request_parser.rl"
 	{
     if(CURRENT){
       CURRENT->content_length *= 10;
       CURRENT->content_length += *p - '0';
     }
   }
-#line 74 "ebb_request_parser.rl"
-	{ parser->header_value_mark   = p; }
+#line 80 "ebb_request_parser.rl"
+	{ parser->header_value_start  = p - buf; }
 	goto st62;
 tr80:
-#line 110 "ebb_request_parser.rl"
+#line 125 "ebb_request_parser.rl"
 	{
     if(CURRENT){
       CURRENT->content_length *= 10;
@@ -1737,29 +1751,39 @@ st62:
 	if ( ++p == pe )
 		goto _test_eof62;
 case 62:
-#line 1741 "ebb_request_parser.c"
+#line 1755 "ebb_request_parser.c"
 	if ( (*p) == 13 )
 		goto tr32;
 	if ( 48 <= (*p) && (*p) <= 57 )
 		goto tr80;
 	goto st21;
 tr24:
-#line 73 "ebb_request_parser.rl"
-	{ parser->header_field_mark   = p; }
+#line 77 "ebb_request_parser.rl"
+	{ parser->header_field_start  = p - buf; }
 	goto st63;
 tr37:
-#line 145 "ebb_request_parser.rl"
+#line 95 "ebb_request_parser.rl"
+	{ 
+    HEADER_CALLBACK(header_field);
+    parser->header_field_start = -1;
+  }
+#line 100 "ebb_request_parser.rl"
+	{
+    HEADER_CALLBACK(header_value);
+    parser->header_value_start = -1;
+  }
+#line 160 "ebb_request_parser.rl"
 	{
     if(CURRENT) CURRENT->number_of_headers++;
   }
-#line 73 "ebb_request_parser.rl"
-	{ parser->header_field_mark   = p; }
+#line 77 "ebb_request_parser.rl"
+	{ parser->header_field_start  = p - buf; }
 	goto st63;
 st63:
 	if ( ++p == pe )
 		goto _test_eof63;
 case 63:
-#line 1763 "ebb_request_parser.c"
+#line 1787 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 33: goto st19;
 		case 58: goto tr27;
@@ -2262,19 +2286,16 @@ case 79:
 		goto st19;
 	goto st0;
 tr97:
-#line 118 "ebb_request_parser.rl"
+#line 133 "ebb_request_parser.rl"
 	{ if(CURRENT) CURRENT->transfer_encoding = EBB_CHUNKED; }
-#line 80 "ebb_request_parser.rl"
-	{ 
-    HEADER_CALLBACK(header_field);
-    parser->header_field_mark = NULL;
-  }
+#line 78 "ebb_request_parser.rl"
+	{ parser->header_field_end    = p - buf; }
 	goto st80;
 st80:
 	if ( ++p == pe )
 		goto _test_eof80;
 case 80:
-#line 2278 "ebb_request_parser.c"
+#line 2299 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 13: goto tr29;
 		case 32: goto st80;
@@ -2282,14 +2303,14 @@ case 80:
 	}
 	goto tr28;
 tr99:
-#line 74 "ebb_request_parser.rl"
-	{ parser->header_value_mark   = p; }
+#line 80 "ebb_request_parser.rl"
+	{ parser->header_value_start  = p - buf; }
 	goto st81;
 st81:
 	if ( ++p == pe )
 		goto _test_eof81;
 case 81:
-#line 2293 "ebb_request_parser.c"
+#line 2314 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 13: goto tr32;
 		case 100: goto st82;
@@ -2357,55 +2378,44 @@ case 88:
 		goto tr107;
 	goto st21;
 tr10:
-#line 90 "ebb_request_parser.rl"
-	{ 
-    CALLBACK(uri);
-    parser->uri_mark = NULL;
-  }
+#line 93 "ebb_request_parser.rl"
+	{ parser->uri_end             = p - buf; }
 	goto st89;
 tr121:
-#line 105 "ebb_request_parser.rl"
-	{
-    CALLBACK(path);
-    parser->path_mark = NULL;
-  }
 #line 90 "ebb_request_parser.rl"
-	{ 
-    CALLBACK(uri);
-    parser->uri_mark = NULL;
-  }
+	{ parser->path_end            = p - buf; }
+#line 93 "ebb_request_parser.rl"
+	{ parser->uri_end             = p - buf; }
 	goto st89;
 tr127:
-#line 76 "ebb_request_parser.rl"
-	{ parser->query_string_mark   = p; }
-#line 100 "ebb_request_parser.rl"
+#line 86 "ebb_request_parser.rl"
+	{ parser->query_string_start  = p - buf; }
+#line 87 "ebb_request_parser.rl"
+	{ parser->query_string_end    = p - buf; }
+#line 115 "ebb_request_parser.rl"
 	{ 
     CALLBACK(query_string);
-    parser->query_string_mark = NULL;
+    parser->query_string_start = -1;
   }
-#line 90 "ebb_request_parser.rl"
-	{ 
-    CALLBACK(uri);
-    parser->uri_mark = NULL;
-  }
+#line 93 "ebb_request_parser.rl"
+	{ parser->uri_end             = p - buf; }
 	goto st89;
 tr131:
-#line 100 "ebb_request_parser.rl"
+#line 87 "ebb_request_parser.rl"
+	{ parser->query_string_end    = p - buf; }
+#line 115 "ebb_request_parser.rl"
 	{ 
     CALLBACK(query_string);
-    parser->query_string_mark = NULL;
+    parser->query_string_start = -1;
   }
-#line 90 "ebb_request_parser.rl"
-	{ 
-    CALLBACK(uri);
-    parser->uri_mark = NULL;
-  }
+#line 93 "ebb_request_parser.rl"
+	{ parser->uri_end             = p - buf; }
 	goto st89;
 st89:
 	if ( ++p == pe )
 		goto _test_eof89;
 case 89:
-#line 2409 "ebb_request_parser.c"
+#line 2419 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 32: goto tr109;
 		case 37: goto tr110;
@@ -2420,14 +2430,14 @@ case 89:
 		goto st0;
 	goto tr108;
 tr108:
-#line 75 "ebb_request_parser.rl"
-	{ parser->fragment_mark       = p; }
+#line 83 "ebb_request_parser.rl"
+	{ parser->fragment_start      = p - buf; }
 	goto st90;
 st90:
 	if ( ++p == pe )
 		goto _test_eof90;
 case 90:
-#line 2431 "ebb_request_parser.c"
+#line 2441 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 32: goto tr112;
 		case 37: goto st91;
@@ -2442,14 +2452,14 @@ case 90:
 		goto st0;
 	goto st90;
 tr110:
-#line 75 "ebb_request_parser.rl"
-	{ parser->fragment_mark       = p; }
+#line 83 "ebb_request_parser.rl"
+	{ parser->fragment_start      = p - buf; }
 	goto st91;
 st91:
 	if ( ++p == pe )
 		goto _test_eof91;
 case 91:
-#line 2453 "ebb_request_parser.c"
+#line 2463 "ebb_request_parser.c"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto st92;
@@ -2473,14 +2483,14 @@ case 92:
 		goto st90;
 	goto st0;
 tr6:
-#line 78 "ebb_request_parser.rl"
-	{ parser->uri_mark            = p; }
+#line 92 "ebb_request_parser.rl"
+	{ parser->uri_start           = p - buf; }
 	goto st93;
 st93:
 	if ( ++p == pe )
 		goto _test_eof93;
 case 93:
-#line 2484 "ebb_request_parser.c"
+#line 2494 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 43: goto st93;
 		case 58: goto st94;
@@ -2498,14 +2508,14 @@ case 93:
 		goto st93;
 	goto st0;
 tr8:
-#line 78 "ebb_request_parser.rl"
-	{ parser->uri_mark            = p; }
+#line 92 "ebb_request_parser.rl"
+	{ parser->uri_start           = p - buf; }
 	goto st94;
 st94:
 	if ( ++p == pe )
 		goto _test_eof94;
 case 94:
-#line 2509 "ebb_request_parser.c"
+#line 2519 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 32: goto tr9;
 		case 34: goto st0;
@@ -2545,16 +2555,16 @@ case 96:
 		goto st94;
 	goto st0;
 tr7:
-#line 78 "ebb_request_parser.rl"
-	{ parser->uri_mark            = p; }
-#line 77 "ebb_request_parser.rl"
-	{ parser->path_mark           = p; }
+#line 92 "ebb_request_parser.rl"
+	{ parser->uri_start           = p - buf; }
+#line 89 "ebb_request_parser.rl"
+	{ parser->path_start          = p - buf; }
 	goto st97;
 st97:
 	if ( ++p == pe )
 		goto _test_eof97;
 case 97:
-#line 2558 "ebb_request_parser.c"
+#line 2568 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 32: goto tr120;
 		case 34: goto st0;
@@ -2595,17 +2605,14 @@ case 99:
 		goto st97;
 	goto st0;
 tr123:
-#line 105 "ebb_request_parser.rl"
-	{
-    CALLBACK(path);
-    parser->path_mark = NULL;
-  }
+#line 90 "ebb_request_parser.rl"
+	{ parser->path_end            = p - buf; }
 	goto st100;
 st100:
 	if ( ++p == pe )
 		goto _test_eof100;
 case 100:
-#line 2609 "ebb_request_parser.c"
+#line 2616 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 32: goto tr126;
 		case 34: goto st0;
@@ -2619,14 +2626,14 @@ case 100:
 		goto st0;
 	goto tr125;
 tr125:
-#line 76 "ebb_request_parser.rl"
-	{ parser->query_string_mark   = p; }
+#line 86 "ebb_request_parser.rl"
+	{ parser->query_string_start  = p - buf; }
 	goto st101;
 st101:
 	if ( ++p == pe )
 		goto _test_eof101;
 case 101:
-#line 2630 "ebb_request_parser.c"
+#line 2637 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 32: goto tr130;
 		case 34: goto st0;
@@ -2640,14 +2647,14 @@ case 101:
 		goto st0;
 	goto st101;
 tr128:
-#line 76 "ebb_request_parser.rl"
-	{ parser->query_string_mark   = p; }
+#line 86 "ebb_request_parser.rl"
+	{ parser->query_string_start  = p - buf; }
 	goto st102;
 st102:
 	if ( ++p == pe )
 		goto _test_eof102;
 case 102:
-#line 2651 "ebb_request_parser.c"
+#line 2658 "ebb_request_parser.c"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto st103;
@@ -2671,7 +2678,7 @@ case 103:
 		goto st101;
 	goto st0;
 tr219:
-#line 174 "ebb_request_parser.rl"
+#line 189 "ebb_request_parser.rl"
 	{
     assert(CURRENT == NULL);
     CURRENT = parser->new_request(parser->data);
@@ -2681,7 +2688,7 @@ st104:
 	if ( ++p == pe )
 		goto _test_eof104;
 case 104:
-#line 2685 "ebb_request_parser.c"
+#line 2692 "ebb_request_parser.c"
 	if ( (*p) == 69 )
 		goto st105;
 	goto st0;
@@ -2721,7 +2728,7 @@ case 109:
 		goto tr139;
 	goto st0;
 tr220:
-#line 174 "ebb_request_parser.rl"
+#line 189 "ebb_request_parser.rl"
 	{
     assert(CURRENT == NULL);
     CURRENT = parser->new_request(parser->data);
@@ -2731,7 +2738,7 @@ st110:
 	if ( ++p == pe )
 		goto _test_eof110;
 case 110:
-#line 2735 "ebb_request_parser.c"
+#line 2742 "ebb_request_parser.c"
 	if ( (*p) == 69 )
 		goto st111;
 	goto st0;
@@ -2750,7 +2757,7 @@ case 112:
 		goto tr142;
 	goto st0;
 tr221:
-#line 174 "ebb_request_parser.rl"
+#line 189 "ebb_request_parser.rl"
 	{
     assert(CURRENT == NULL);
     CURRENT = parser->new_request(parser->data);
@@ -2760,7 +2767,7 @@ st113:
 	if ( ++p == pe )
 		goto _test_eof113;
 case 113:
-#line 2764 "ebb_request_parser.c"
+#line 2771 "ebb_request_parser.c"
 	if ( (*p) == 69 )
 		goto st114;
 	goto st0;
@@ -2786,7 +2793,7 @@ case 116:
 		goto tr146;
 	goto st0;
 tr222:
-#line 174 "ebb_request_parser.rl"
+#line 189 "ebb_request_parser.rl"
 	{
     assert(CURRENT == NULL);
     CURRENT = parser->new_request(parser->data);
@@ -2796,7 +2803,7 @@ st117:
 	if ( ++p == pe )
 		goto _test_eof117;
 case 117:
-#line 2800 "ebb_request_parser.c"
+#line 2807 "ebb_request_parser.c"
 	if ( (*p) == 79 )
 		goto st118;
 	goto st0;
@@ -2822,7 +2829,7 @@ case 120:
 		goto tr150;
 	goto st0;
 tr223:
-#line 174 "ebb_request_parser.rl"
+#line 189 "ebb_request_parser.rl"
 	{
     assert(CURRENT == NULL);
     CURRENT = parser->new_request(parser->data);
@@ -2832,7 +2839,7 @@ st121:
 	if ( ++p == pe )
 		goto _test_eof121;
 case 121:
-#line 2836 "ebb_request_parser.c"
+#line 2843 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 75: goto st122;
 		case 79: goto st126;
@@ -2888,7 +2895,7 @@ case 128:
 		goto tr159;
 	goto st0;
 tr224:
-#line 174 "ebb_request_parser.rl"
+#line 189 "ebb_request_parser.rl"
 	{
     assert(CURRENT == NULL);
     CURRENT = parser->new_request(parser->data);
@@ -2898,7 +2905,7 @@ st129:
 	if ( ++p == pe )
 		goto _test_eof129;
 case 129:
-#line 2902 "ebb_request_parser.c"
+#line 2909 "ebb_request_parser.c"
 	if ( (*p) == 80 )
 		goto st130;
 	goto st0;
@@ -2945,7 +2952,7 @@ case 135:
 		goto tr166;
 	goto st0;
 tr225:
-#line 174 "ebb_request_parser.rl"
+#line 189 "ebb_request_parser.rl"
 	{
     assert(CURRENT == NULL);
     CURRENT = parser->new_request(parser->data);
@@ -2955,7 +2962,7 @@ st136:
 	if ( ++p == pe )
 		goto _test_eof136;
 case 136:
-#line 2959 "ebb_request_parser.c"
+#line 2966 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 79: goto st137;
 		case 82: goto st140;
@@ -3084,7 +3091,7 @@ case 153:
 		goto tr187;
 	goto st0;
 tr226:
-#line 174 "ebb_request_parser.rl"
+#line 189 "ebb_request_parser.rl"
 	{
     assert(CURRENT == NULL);
     CURRENT = parser->new_request(parser->data);
@@ -3094,7 +3101,7 @@ st154:
 	if ( ++p == pe )
 		goto _test_eof154;
 case 154:
-#line 3098 "ebb_request_parser.c"
+#line 3105 "ebb_request_parser.c"
 	if ( (*p) == 82 )
 		goto st155;
 	goto st0;
@@ -3127,7 +3134,7 @@ case 158:
 		goto tr192;
 	goto st0;
 tr227:
-#line 174 "ebb_request_parser.rl"
+#line 189 "ebb_request_parser.rl"
 	{
     assert(CURRENT == NULL);
     CURRENT = parser->new_request(parser->data);
@@ -3137,7 +3144,7 @@ st159:
 	if ( ++p == pe )
 		goto _test_eof159;
 case 159:
-#line 3141 "ebb_request_parser.c"
+#line 3148 "ebb_request_parser.c"
 	if ( (*p) == 78 )
 		goto st160;
 	goto st0;
@@ -3192,7 +3199,7 @@ case 165:
 		goto tr200;
 	goto st0;
 tr199:
-#line 154 "ebb_request_parser.rl"
+#line 169 "ebb_request_parser.rl"
 	{
     parser->chunk_size *= 16;
     parser->chunk_size += unhex[(int)*p];
@@ -3202,7 +3209,7 @@ st166:
 	if ( ++p == pe )
 		goto _test_eof166;
 case 166:
-#line 3206 "ebb_request_parser.c"
+#line 3213 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 13: goto st167;
 		case 48: goto tr199;
@@ -3261,7 +3268,7 @@ case 169:
 	goto st0;
 tr206:
 	cs = 184;
-#line 169 "ebb_request_parser.rl"
+#line 184 "ebb_request_parser.rl"
 	{
     END_REQUEST;
     cs = 183;
@@ -3271,7 +3278,7 @@ st184:
 	if ( ++p == pe )
 		goto _test_eof184;
 case 184:
-#line 3275 "ebb_request_parser.c"
+#line 3282 "ebb_request_parser.c"
 	goto st0;
 st170:
 	if ( ++p == pe )
@@ -3309,7 +3316,7 @@ case 171:
 		goto st167;
 	goto st171;
 tr200:
-#line 154 "ebb_request_parser.rl"
+#line 169 "ebb_request_parser.rl"
 	{
     parser->chunk_size *= 16;
     parser->chunk_size += unhex[(int)*p];
@@ -3319,7 +3326,7 @@ st172:
 	if ( ++p == pe )
 		goto _test_eof172;
 case 172:
-#line 3323 "ebb_request_parser.c"
+#line 3330 "ebb_request_parser.c"
 	switch( (*p) ) {
 		case 13: goto st173;
 		case 59: goto st177;
@@ -3346,7 +3353,7 @@ st174:
 case 174:
 	goto tr211;
 tr211:
-#line 159 "ebb_request_parser.rl"
+#line 174 "ebb_request_parser.rl"
 	{
     skip_body(&p, parser, MIN(parser->chunk_size, REMAINING));
     p--; 
@@ -3361,7 +3368,7 @@ st175:
 	if ( ++p == pe )
 		goto _test_eof175;
 case 175:
-#line 3365 "ebb_request_parser.c"
+#line 3372 "ebb_request_parser.c"
 	if ( (*p) == 13 )
 		goto st176;
 	goto st0;
@@ -3742,7 +3749,7 @@ case 182:
 	_out: {}
 	}
 
-#line 363 "ebb_request_parser.rl"
+#line 374 "ebb_request_parser.rl"
 
   parser->cs = cs;
 
