@@ -86,11 +86,7 @@ int main(int argc, char **_)
   struct ev_loop *loop = ev_default_loop(0);
   ebb_server server;
 
-  ebb_server_init(&server, loop);
-  if(argc > 1) {
-    printf("using SSL\n");
-    ebb_server_set_secure(&server, "ca-cert.pem", "ca-key.pem");
-  }
+  ebb_server_init(&server, loop); 
   server.new_connection = new_connection;
 
   printf("hello_world listening on port 5000\n");

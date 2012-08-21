@@ -1,7 +1,7 @@
 include config.mk
 
-DEP = ebb.h ebb_request_parser.h rbtree.h
-SRC = ebb.c ebb_request_parser.c rbtree.c
+DEP = ebb.h ebb_request_parser.h
+SRC = ebb.c ebb_request_parser.c
 OBJ = ${SRC:.c=.o}
 
 VERSION = 0.1
@@ -43,13 +43,8 @@ ebb_request_parser.c: ebb_request_parser.rl
 	@echo RAGEL $<
 	@ragel -s -G2 $< -o $@
 
-test: test_request_parser test_rbtree
+test: test_request_parser
 	time ./test_request_parser
-	./test_rbtree
-
-test_rbtree: test_rbtree.o $(OUTPUT_A)
-	@echo BUILDING test_rbtree
-	@$(CC) $(CFLAGS) -o $@ $< $(OUTPUT_A)
 
 test_request_parser: test_request_parser.o $(OUTPUT_A)
 	@echo BUILDING test_request_parser
@@ -59,12 +54,11 @@ examples: examples/hello_world
 
 examples/hello_world: examples/hello_world.c $(OUTPUT_A) 
 	@echo BUILDING examples/hello_world
-	@$(CC) -I. $(LIBS) $(CFLAGS) -lev -o $@ $^
+	@$(CC) -I. $(LIBS) $(CFLAGS) -o $@ $^ -lev
 
 clean:
 	@echo CLEANING
 	@rm -f ${OBJ} $(OUTPUT_A) $(OUTPUT_LIB) libebb-${VERSION}.tar.gz 
-	@rm -f test_rbtree test_request_parser 
 	@rm -f examples/hello_world examples/hello_world.o
 
 clobber: clean

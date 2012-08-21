@@ -5,18 +5,12 @@ EVINC  = $(HOME)/local/libev/include
 EVLIB  = $(HOME)/local/libev/lib
 EVLIBS = -L${EVLIB} -lev
 
-# GnuTLS, comment if you don't want it (necessary for HTTPS)
-GNUTLSLIB   = /usr/lib
-GNUTLSINC   = /usr/include
-GNUTLSLIBS  = -L${GNUTLSLIB} -lgnutls
-GNUTLSFLAGS = -DHAVE_GNUTLS
-
 # includes and libs
-INCS = -I${EVINC} -I${GNUTLSINC}
-LIBS = ${EVLIBS} ${GNUTLSLIBS} -lefence
+INCS = -I${EVINC}
+LIBS = ${EVLIBS} #-lefence
 
 # flags
-CPPFLAGS = -DVERSION=\"$(VERSION)\" ${GNUTLSFLAGS}
+CPPFLAGS = -DVERSION=\"$(VERSION)\"
 CFLAGS   = -O2 -g -Wall ${INCS} ${CPPFLAGS} -fPIC
 LDFLAGS  = -s ${LIBS}
 LDOPT    = -shared
