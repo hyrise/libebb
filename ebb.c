@@ -360,7 +360,12 @@ ebb_server_listen_on_port(ebb_server *server, const int port)
   
   int ret = ebb_server_listen_on_fd(server, fd);
   if (ret >= 0) {
-    sprintf(server->port, "%d", port);
+      socklen_t len = sizeof(addr);
+      if (getsockname(fd, (struct sockaddr *)&addr, &len) == -1) {
+          perror("getsockname");
+          goto error;
+      }
+      sprintf(server->port, "%d", ntohs(addr.sin_port));
   }
   return ret;
 error:
